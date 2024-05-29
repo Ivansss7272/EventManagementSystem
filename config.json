@@ -1,0 +1,7 @@
+{
+  "database_url": "postgresql://username:password@localhost/eventdb",
+  "secret_key": "your_secret_key",
+  "frontend_url": "http://localhost:3000",
+  "backend_url": "http://localhost:5000",
+  "notification_url": "http://localhost:8080"
+}
