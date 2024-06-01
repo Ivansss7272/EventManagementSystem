@@ -1,12 +1,14 @@
 import express, { Express, Request, Response } from 'express';
 import dotenv from 'dotenv';
-import NodeCache from 'node-cache';  // Make sure to install the node-cache package
+import NodeCache from 'node-cache'; // Ensure the node-cache package is installed
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT || 3000;
-const myCache = new NodeCache({ stdTTL: 100 }); // Cache TTL as an example, adjust based on your needs
+
+// Standard TTL set for cached data. Adjust TTL based on specific requirements.
+const eventsCache = new NodeCache({ stdTTL: 100 });
 
 app.use(express.json());
 
@@ -14,35 +16,35 @@ app.get('/', (req: Request, res: Response) => {
     res.send('Welcome to the Event Management System!');
 });
 
-// Implement caching for the events endpoint
+// Cache implementation for retrieving events
 app.get('/events', (req: Request, res: Response) => {
-    const eventsFromCache = myCache.get('events');
-    if (eventsFromCache) {
-        return res.json(eventsFromCache);
+    const cachedEvents = eventsCache.get('events');
+    if (cachedEvents) {
+        return res.json(cachedEvents);
     } else {
-        const events = [  // Assuming this array might come from a database in a real scenario
+        const upcomingEvents = [ // This array simulates fetching from a database
             { id: 1, name: 'Event 1', date: '2023-01-01' },
             { id: 2, name: 'Event 2', date: '2023-02-01' }
         ];
-        myCache.set('events', events);
-        res.json(events);
+        eventsCache.set('events', upcomingEvents);
+        res.json(upcomingEvents);
     }
 });
 
-// Allow batch creation of events
-app.post('/events', (req: Request, res: Response) => {
-    // assuming req.body is an array of events. Validate accordingly.
-    const events = req.body;
-    if (!Array.isArray(events)) {
+// Endpoint for bulk-adding new events
+app.post('/events/batch', (req: Request, res: Response) => {
+    const newEvents = req.body; // Expected to be an array of events
+    if (!Array.isArray(newEvents)) {
         return res.status(400).send({ error: "Request body must be an array of events." });
     }
-    // Here, you would typically loop through the events and insert them into your database.
-    // For simplicity, we'll just echo them back to the client.
 
-    // Optionally, after successfully adding new events, clear the cache to ensure the next GET /events fetches fresh data
-    myCache.del('events');
+    // In a real setting, insert the new events into the database here.
+    // For demonstration, we'll return the submitted data.
 
-    res.json(events);  // Returning the received events for simplicity
+    // Clear the cached events to ensure new requests receive updated data
+    eventsCache.del('events');
+
+    res.json(newEvents); // Echoing back the newly added events
 });
 
 app.listen(port, () => {
