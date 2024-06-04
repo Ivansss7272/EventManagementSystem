@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Management System</title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="app.ts"></script>
+</head>
+<body>
+    <header>
+        <h1>Welcome to Our Event Management System</h1>
+    </header>
+    <main>
+        <section id="events-display">
+            <h2>Upcoming Events</h2>
+        </section>
+        <section id="event-details">
+            <h2>Event Details</h2>
+        </section>
+        <section>
+            <h2>Add New Event</h2>
+            <form id="add-event-form">
+                <label for="eventName">Event Name:</label>
+                <input type="text" id="eventName" name="eventName" required>
+                <label for="eventDate">Event Date:</label>
+                <input type="date" id="eventDate" name="eventDate" required>
+                <label for="eventDescription">Description:</label>
+                <textarea id="eventDescription" name="eventDescription" required></textarea>
+                <button type="submit">Add Event</button>
+            </form>
+        </section>
+        <section id="edit-event-section" style="display:none;">
+            <h2>Edit Event</h2>
+            <form id="edit-event-form">
+                <input type="hidden" id="editEventId" name="editEventId">
+                <label for="editEventName">Event Name:</label>
+                <input type="text" id="editEventName" name="editEventName" required>
+                <label for="editEventDate">Event Date:</label>
+                <input type="date" id="editEventDate" name="editEventDate" required>
+                <label for="editEventDescription">Description:</label>
+                <textarea id="editEventDescription" name="editEventDescription" required></textarea>
+                <button type="submit">Update Event</button>
+            </form>
+        </section>
+    </main>
+</body>
+</html>
