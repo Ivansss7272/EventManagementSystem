@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { NavLink } from 'react-router-dom';
 
 interface HeaderProps {
   appTitle: string;
@@ -19,7 +20,15 @@ const Header: React.FC<HeaderProps> = ({ appTitle }) => {
         <ul style={{ listStyleType: 'none', padding: 0 }}>
           {navLinks.map((link) => (
             <li key={link.text} style={{ display: 'inline', marginRight: '20px' }}>
-              <a href={link.href}>{link.text}</a>
+              <NavLink 
+                to={link.href}
+                style={({ isActive }) => ({
+                  color: isActive ? 'blue' : 'black',
+                  textDecoration: 'none',
+                })}
+              >
+                {link.text}
+              </NavLink>
             </li>
           ))}
         </ul>
