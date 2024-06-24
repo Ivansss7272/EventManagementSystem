@@ -22,24 +22,32 @@ const EventDetailComponent: React.FC<{ eventId: string }> = ({ eventId }) => {
   const API_URL = process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
-    const loadEventDetails = async () => {
-      try {
-        const response = await axios.get(`${API_URL}/events/${eventId}`);
-        setEventDetailsState({ currentEvent: response.data, isLoading: false, error: null });
-      } catch (error: any) {
-        console.error("Failed to load event details", error);
-        let errorMessage = "Failed to load event details";
-        if (error.response && error.response.data && error.response.data.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        setEventDetailsState({ currentEvent: null, isLoading: false, error: errorMessage });
-      }
-    };
-
     loadEventDetails();
   }, [eventId, API_URL]);
+
+  const loadEventDetails = async () => {
+    try {
+      const response = await fetchEventDetails();
+      setEventDetailsState({ currentEvent: response.data, isLoading: false, error: null });
+    } catch (error) {
+      handleLoadingError(error);
+    }
+  };
+
+  const fetchEventDetails = async () => {
+    return axios.get(`${API_URL}/events/${eventId}`);
+  };
+
+  const handleLoadingError = (error: any) => {
+    console.error("Failed to load event details", error);
+    let errorMessage = "Failed to load event details";
+    if (error.response && error.response.data && error.response.data.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    setEventDetailsState({ currentEvent: null, isLoading: false, error: errorMessage });
+  };
 
   const { currentEvent, isLoading, error } = eventDetailsState;
 
@@ -48,21 +56,25 @@ const EventDetailComponent: React.FC<{ eventId: string }> = ({ eventId }) => {
       {isLoading ? (
         <p>Loading event details...</p>
       ) : error ? (
-        <p>Error loading event in.details: {error}</p>
-      ) : currentEvent ? (
-        <div>
-          <h2>{currentEvent.title}</h2>
-          <p><strong>Description:</strong> {currentEvent.description}</p>
-          <p><strong>Date:</strong> {currentEvent.date}</p>
-          <p><strong>Time:</strong> {currentEvent.time}</p>
-          <p><strong>Location:</strong> {currentEvent.location}</p>
-          <p><strong>Organizer:</strong> {currentEvent.organizer}</p>
-        </div>
+        <p>Error loading event details: {error}</p>
+      ) : currentRequest ? (
+        renderEventDetails(currentEvent)
       ) : (
         <p>Event details are not available.</p>
       )}
     </div>
   );
 };
+
+const renderEventDetails = (event: Event) => (
+  <div>
+    <h2>{event.title}</h2>
+    <p><strong>Description:</strong> {event.description}</p>
+    <p><strong>Date:</strong> {event.date}</p>
+    <p><strong>Time:</strong> {event.time}</p>
+    <p><strong>Location:</strong> {event.location}</p>
+    <p><strong>Organizer:</strong> {event.organizer}</p>
+  </div>
+);
 
 export default EventDetailComponent;
