@@ -21,8 +21,9 @@ const EventForm: React.FC = () => {
   };
 
   const [formData, setFormData] = useState<EventFormState>(initialState);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeNode<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -30,16 +31,17 @@ const EventForm: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    const apiEndpoint = process.env.REACT_APP_API_ENDPOINT || 'your-api-endpoint'; 
-    try {
+  const apiEndpoint = process.env.REACT_APP_API_ENDPOINT || 'your-api-endpoint';
+  try {
       await axios.post(apiEndpoint, formData);
       alert('Event added successfully!');
-      setFormData(initialState); 
-    } catch (error: any) {
-      console.error("Error adding the event: ", error.response?.data || error.message);
-      alert('Failed to add event.');
+      setFormData(initialState);
+      setError(null);
+    } catch (error) {
+      console.error("Error adding the event: ", error);
+      setError("Failed to add event. Please make sure all fields are correctly filled and try again.");
     }
   };
 
@@ -69,6 +71,7 @@ const EventForm: React.FC = () => {
         <label htmlFor="organizer">Organizer:</label>
         <input type="text" id="organizer" name="organizer" value={formData.organizer} onChange={handleInputChange} required />
       </div>
+      {error ? <p style={{ color: 'red' }}>{error}</p> : null}
       <button type="submit">Add Event</button>
     </form>
   );
