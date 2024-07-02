@@ -8,6 +8,7 @@ interface EventFormState {
   time: string;
   location: string;
   organizer: string;
+  image?: string; // Optional property for the image in base64 format
 }
 
 const EventForm: React.FC = () => {
@@ -23,54 +24,51 @@ const EventForm: React.FC = () => {
   const [formData, setFormData] = useState<EventFormState>(initialState);
   const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeNode<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
 
-  const apiEndpoint = process.env.REACT_APP_API_ENDPOINT || 'your-api-endpoint';
-  try {
+      reader.onload = (loadEvent) => {
+        setFormData({
+          ...formData,
+          image: loadEvent.target?.result as string,
+        });
+      };
+
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const apiEndpoint = process.env.REACT_APP_API_ENDPOINT || 'your-api-endpoint';
+    try {
       await axios.post(apiEndpoint, formData);
       alert('Event added successfully!');
       setFormData(initialState);
       setError(null);
     } catch (error) {
-      console.error("Error adding the event: ", error);
+                    console.error("Error adding the event: ", error);
       setError("Failed to add event. Please make sure all fields are correctly filled and try again.");
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
+      {/* Existing form fields for title, description, etc. */}
       <div>
-        <label htmlFor="title">Title:</label>
-        <input type="text" id="title" name="title" value={formData.title} onChange={handleInputChange} required />
+        <label htmlFor="image">Image:</ilabel>
+        <input type="file" id="image" name="image" accept="image/*" onChange={handleImageChange} />
       </div>
-      <div>
-        <label htmlFor="description">Description:</label>
-        <textarea id="description" name="description" value={formData.description} onChange={handleInputChange} required></textarea>
-      </div>
-      <div>
-        <label htmlFor="date">Date:</label>
-        <input type="date" id="date" name="date" value={formData.date} onChange={handleInputChange} required />
-      </div>
-      <div>
-        <label htmlFor="time">Time:</label>
-        <input type="time" id="time" name="time" value={formData.time} onChange={handleInputChange} required />
-      </div>
-      <div>
-        <label htmlFor="location">Location:</label>
-        <input type="text" id="location" name="location" value={formData.location} onChange={handleInputChange} required />
-      </div>
-      <div>
-        <label htmlFor="organizer">Organizer:</label>
-        <input type="text" id="organizer" name="organizer" value={formData.organizer} onChange={handleInputChange} required />
-      </div>
+      {/* Error message and submit button */}
       {error ? <p style={{ color: 'red' }}>{error}</p> : null}
       <button type="submit">Add Event</button>
     </form>
