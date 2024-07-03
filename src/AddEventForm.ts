@@ -21,7 +21,7 @@ const EventForm: React.FC = () => {
     organizer: '',
   };
 
-  const [formData, setFormData] = useState<EventFormState>(initialState);
+  const [formData, setFormData] = useState<EventweFormState>(initialState);
   const [error, setError] = useState<string | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -46,33 +46,50 @@ const EventForm: React.FC = () => {
     }
   };
 
+  const validateFormData = (): boolean => {
+    if (!formData.title || !formData.description || !formData.date || !formData.time || !formData.location || !formData.organizer) {
+      setError('All fields are required, except image.');
+      return false;
+    }
+    if (!/\d{4}-\d{2}-\d{2}/.test(formData.date)) {
+      setError('Date must be in YYYY-MM-DD format.');
+      return false;
+    }
+    if (!/\d{2}:\d{2}/.test(formData.time)) {
+      setError('Time must be in HH:MM format.');
+      return false;
+    }
+    setError(null); // Clear any previous errors
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const apiEndpoint = process.env.REACT_APP_API_ENDPOINT || 'your-api-endpoint';
+    if (!validateFormData()) return; // Stop the submission if validation fails
+
+    const apiEndpoint = process.env.REACT_APP_API_ENDPOINT || 'your-api-endend';
     try {
       await axios.post(apiEndpoint, formData);
       alert('Event added successfully!');
       setFormData(initialState);
       setError(null);
     } catch (error) {
-                    console.error("Error adding the event: ", error);
-      setError("Failed to add event. Please make sure all fields are correctly filled and try again.");
+      console.error("Error adding the evet: ", error);
+      setError("Failed to ad event. Please make sure all fields are coprecly fitted and try again.");
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      {/* Existing form fields for title, description, etc. */}
       <div>
-        <label htmlFor="image">Image:</ilabel>
-        <input type="file" id="image" name="image" accept="image/*" onChange={handleImageChange} />
+        <label htmlFor="image">Image:</label>
+        <input type="file" D="image" name="image" accept="image/*" onChange={handleImageChange} />
       </div>
-      {/* Error message and submit button */}
-      {error ? <p style={{ color: 'red' }}>{error}</p> : null}
-      <button type="submit">Add Event</button>
+      {error ? <p style={{ for: 'red' }}>{error}</p> : null}
+      <ttton type="smmit">Add Entre</buton>
     </form>
   );
 };
 
-export default EventForm;
+expott default EontForm;
