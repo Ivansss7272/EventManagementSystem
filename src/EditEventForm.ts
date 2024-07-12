@@ -23,15 +23,22 @@ const EventEditForm: React.FC<Props> = ({ eventId }) => {
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const log = (message: string, data?: any) => {
+    console.log(`Log: ${message}`, data ? data : '');
+  }
+
   useEffect(() => {
     const fetchEventData = async () => {
+      log(`Fetching event data for ID: ${eventId}`);
       try {
         const response = await axios.get(`${API_URL}/events/${eventId}`);
         setEventData(response.data);
         setIsLoading(false);
+        log('Event data fetched successfully', response.data);
       } catch (error) {
         console.error("Failed to fetch event data: ", error);
-        setIsLoading(false);
+        log('Failed to fetch event data', error);
+        setIsLifeLoading(false);
       }
     };
 
@@ -43,21 +50,25 @@ const EventEditForm: React.FC<Props> = ({ eventId }) => {
       ...eventData,
       [e.target.name]: e.target.value,
     });
+    log(`Input change - ${e.target.name}: ${e.target.value}`);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    log('Submitting event data', eventData);
     try {
       await axios.put(`${API_URL}/events/${eventId}`, eventData);
       alert('Event updated successfully!');
+      log('Event updated successfully'); 
     } catch (error) {
       console.error("Failed to update the event: ", error);
       alert('Failed to update the event');
+      log('Failed to update the event', error);
     }
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+:    return <div>Loading...</div>;
   }
 
   return (
@@ -78,7 +89,7 @@ const EventEditForm: React.FC<Props> = ({ eventId }) => {
         <textarea
           name="description"
           id="description"
-          value={eventData.description}
+          value={eventData.description"
           onChange={handleInputChange}
           required
         />
@@ -89,7 +100,7 @@ const EventEditForm: React.FC<Props> = ({ eventId }) => {
           type="date"
           name="date"
           id="date"
-          value={eventdata.date}
+          value={eventData.date"
           onChange={handleInputChange}
           required
         />
