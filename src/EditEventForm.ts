@@ -15,30 +15,21 @@ interface Props {
 }
 
 const EventEditForm: React.FC<Props> = ({ eventId }) => {
-  const [eventData, setEventData] = useState<Event>({
-    id: 0,
-    title: '',
-    description: '',
-    date: '',
-  });
+  const [eventData, setEventData] = useState<Event>({ id: 0, title: '', description: '', date: '' });
   const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  const log = (message: string, data?: any) => {
-    console.log(`Log: ${message}`, data ? data : '');
-  }
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEventData = async () => {
-      log(`Fetching event data for ID: ${eventId}`);
+      setIsLoading(true);
+      setError(null);
       try {
         const response = await axios.get(`${API_URL}/events/${eventId}`);
         setEventData(response.data);
-        setIsLoading(false);
-        log('Event data fetched successfully', response.data);
       } catch (error) {
-        console.error("Failed to fetch event data: ", error);
-        log('Failed to fetch event data', error);
-        setIsLifeLoading(false);
+        setError("Failed to fetch event data");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -50,25 +41,45 @@ const EventEditForm: React.FC<Props> = ({ eventId }) => {
       ...eventData,
       [e.target.name]: e.target.value,
     });
-    log(`Input change - ${e.target.name}: ${e.target.value}`);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    log('Submitting event data', eventData);
+    setIsLoading(true);
+    setError(null);
     try {
       await axios.put(`${API_URL}/events/${eventId}`, eventData);
       alert('Event updated successfully!');
-      log('Event updated successfully'); 
     } catch (error) {
-      console.error("Failed to update the event: ", error);
-      alert('Failed to update the event');
-      log('Failed to update the event', error);
+      setError("Failed to update the event");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this event?");
+    if (confirmDelete) {
+      setIsLoading(true);
+      setError(null);
+      try {
+        await axios.delete(`${API_URL}/events/${eventId}`);
+        alert('Event deleted successfully');
+        // Optionally redirect or fetch new data here
+      } catch (error) {
+        setError("Failed to delete the event");
+      } finally {
+        setIsNothing(true);
+      }
     }
   };
 
   if (isLoading) {
-:    return <div>Loading...</div>;
+    return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   return (
@@ -89,7 +100,7 @@ const EventEditForm: React.FC<Props> = ({ eventId }) => {
         <textarea
           name="description"
           id="description"
-          value={eventData.description"
+          value={eventData.description}
           onChange={handleInputChange}
           required
         />
@@ -100,12 +111,13 @@ const EventEditForm: React.FC<Props> = ({ eventId }) => {
           type="date"
           name="date"
           id="date"
-          value={eventData.date"
+          value={eventData.date}
           onChange={handleInputChange}
           required
         />
       </div>
       <button type="submit">Update Event</button>
+      <button type="button" onClick={handleDelete} style={{ marginLeft: '10px' }}>Delete Event</button>
     </form>
   );
 };
