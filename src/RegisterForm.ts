@@ -8,9 +8,11 @@ type FormData = {
 
 const EventRegistrationForm: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({ name: '', email: '' });
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    setErrorMessage('');
     setFormData({
       ...formData,
       [name]: value,
@@ -19,7 +21,6 @@ const EventRegistrationForm: React.FC = () => {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    
     const API_ENDPOINT = process.env.REACT_APP_REGISTRATION_API_ENDPOINT || 'http://example.com/api/register';
 
     try {
@@ -28,12 +29,17 @@ const EventRegistrationForm: React.FC = () => {
       setFormData({ name: '', email: '' });
     } catch (error) {
       console.error('Registration failed:', error);
-      alert('Registration failed, please try again later.');
+      if (axios.isAxiosError(error) && error.response) {
+        setErrorMessage(`Registration failed: ${error.response.data?.message || 'Please try again later.'}`);
+      } else {
+        setErrorMessage('Registration failed, please try again later.');
+      }
     }
   };
 
   return (
     <form onSubmit={handleSubmit}>
+      { errorMessage && <div style={{ color: 'red' }}>{errorMessage}</div> }
       <div>
         <label htmlFor="name">Name:</label>
         <input
