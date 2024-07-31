@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from dotenv import load_dotenv
 from flask_httpauth import HTTPBasicAuth
+from sqlalchemy.exc import SQLAlchemyError
 
 load_dotenv()  # Load environment variables
 
@@ -42,8 +43,12 @@ class Registration(db.Model):
 
 @db.event.listens_for(Event.__table__, 'after_create')
 def insert_initial_events(*args, **kwargs):
-    db.session.add(Event(name='Sample Event', location='Sample Location', time='12:00 PM'))
-    db.session.commit()
+    try:
+        db.session.add(Event(name='Sample Event', location='Sample Location', time='12:00 PM'))
+        db.session.commit()
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        app.logger.error(f'Error inserting initial events: {str(e)}')
 
 # Auth
 @auth.verify_password
@@ -51,74 +56,98 @@ def verify_password(username, password):
     user = User.query.filter_by(username=username).first()
     if user and user.check_password(password):
         return user
+    return None
 
 # Routes
 @app.route('/register', methods=['POST'])
 def register():
-    username = request.json.get('username')
-    password = request.json.get('password')
-    if username is None or password is None:
-        return jsonify({"message": "Missing arguments"}), 400
-    if User.query.filter_by(username=username).first() is not None:
-        return jsonify({"message": "User already exists"}), 400
-    user = User(username=username)
-    user.set_password(password)
-    db.session.add(user)
-    db.session.commit()
-    return jsonify({"message": "User successfully registered"}), 201
+    try:
+        username = request.json.get('username')
+        password = request.json.get('password')
+        if username is None or password is None:
+            return jsonify({"message": "Missing arguments"}), 400
+        if User.query.filter_by(username=username).first() is not None:
+            return jsonify({"message": "User already exists"}), 400
+        user = User(username=username)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        return jsonify({"message": "User successfully registered"}), 201
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 @app.route('/events', methods=['GET'])
 @auth.login_required
 def get_events():
-    events = Event.query.all()
-    return jsonify([{'name': event.name, 'location': event.location, 'time': event.time} for event in events])
+    try:
+        events = Event.query.all()
+        return jsonify([{'name': event.name, 'location': event.location, 'time': event.time} for event in events])
+    except SQLAlchemyError as e:
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 @app.route('/events', methods=['POST'])
 @auth.login_required
 def create_event():
-    name = request.json.get('name')
-    location = request.json.get('location')
-    time = request.json.get('time')
-    if name is None or location is None or time is None:
-        return jsonify({"message": "Missing arguments"}), 400
-    event = Event(name=name, location=location, time=time)
-    db.session.add(event)
-    db.session.commit()
-    return jsonify({"message": "Event successfully created"}), 201
+    try:
+        name = request.json.get('name')
+        location = request.json.get('location')
+        time = request.json.get('time')
+        if name is None or location is None or time is None:
+            return jsonify({"message": "Missing arguments"}), 400
+        event = Event(name=name, location=location, time=time)
+        db.session.add(event)
+        db.session.commit()
+        return jsonify({"message": "Event successfully created"}), 201
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 @app.route('/events/<int:event_id>', methods=['PUT'])
 @auth.login_required
 def update_event(event_id):
-    event = Event.query.get(event_id)
-    if event is None:
-        return jsonify({"message": "Event not found"}), 404
-    event.name = request.json.get('name', event.name)
-    event.location = request.json.get('location', event.location)
-    event.time = request.json.get('time', event.time)
-    db.session.commit()
-    return jsonify({"message": "Event updated successfully"})
+    try:
+        event = Event.query.get(event_id)
+        if event is None:
+            return jsonify({"message": "Event not found"}), 404
+        event.name = request.json.get('name', event.name)
+        event.location = request.json.get('location', event.location)
+        event.time = request.json.get('time', event.time)
+        db.session.commit()
+        return jsonify({"message": "Event updated successfully"})
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 @app.route('/events/<int:event_id>', methods=['DELETE'])
 @auth.login_required
 def delete_event(event_id):
-    event = Event.query.get(event_id)
-    if event is None:
-        return jsonify({"message": "Event not found"}), 404
-    db.session.delete(event)
-    db.session.commit()
-    return jsonify({"message": "Event deleted successfully"})
+    try:
+        event = Event.query.get(event_id)
+        if event is None:
+            return jsonify({"message": "Event not found"}), 404
+        db.session.delete(event)
+        db.session.commit()
+        return jsonify({"message": "Event deleted successfully"})
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 @app.route('/events/<int:event_id>/register', methods=['POST'])
 @auth.login_required
 def register_to_event(event_id):
-    event = Event.query.get(event_id)
-    if event is None:
-        return jsonify({"message": "Event not found"}), 404
-    user_id = request.json.get('user_id')
-    registration = Registration(user_id=user_id, event_id=event_id)
-    db.session.add(registration)
-    db.session.commit()
-    return jsonify({"message": "Successfully registered to the event"})
+    try:
+        event = Event.query.get(event_id)
+        if event is None:
+            return jsonify({"message": "Event not found"}), 404
+        user_id = request.json.get('user_id')
+        registration = Registration(user_id=user_id, event_id=event_id)
+        db.session.add(registration)
+        db.session.commit()
+        return jsonify({"message": "Successfully registered to the event"})
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 if __name__ == '__main__':
     db.create_all()
