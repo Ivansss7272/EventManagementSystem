@@ -2,14 +2,19 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 import os
 from dotenv import load_dotenv
+from flask_caching import Cache
 
 load_dotenv()  # Load environment variables from .env file
 
 app = Flask(__name__)
-# Using environment variables to configure the SQLAlchemy database URI
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
+# Configure cache
+app.config['CACHE_TYPE'] = 'SimpleCache'  # Consider other backends depending on your requirements
+app.config['CACHE_DEFAULT_TIMEOUT'] = 300  # Default cache timeout 5 minutes
+cache = Cache(app)
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -51,10 +56,17 @@ class Registration(db.Model):
 User.organized_events = db.relationship('Event', backref='organizer', lazy=True)
 Event.organizer = db.relationship('User', back_populates='organized_events')
 
-# Creating the database
 @app.before_first_request
 def create_tables():
     db.create_all()
+
+# Example of a cached function
+@app.route('/events')
+@cache.cached(timeout=50, key_prefix='all_events')  # Cache this view for 50 seconds
+def list_events():
+    events = Event.query.all()
+    # Assuming you're sending back JSON data, but adjust according to your needs
+    return jsonify([{'id': event.id, 'name': event.name, 'start_time': event.start_time.isoformat(), 'end_time': event.end_time.isoformat()} for event in events])
 
 if __name__ == '__main__':
     app.run(debug=True)
