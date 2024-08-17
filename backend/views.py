@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, abort
+from flask import Flask, request, jsonify, abort, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 import os
@@ -42,6 +42,18 @@ def token_required(f):
         return f(current_user, *args, **kwargs)
     return decorated_function
 
+def get_user_from_request(auth):
+    if auth:
+        user = User.query.filter_by(username=auth.username).first()
+        return user
+    return None
+
+def generate_auth_token(user_id, exp_duration=12):
+    return jwt.encode({'user_id': user_id, 'exp': datetime.utcnow() + timedelta(hours=exp_duration)}, app.config['SECRET_KEY'])
+
+def get_event_data(event):
+    return {'id': event.id, 'title': event.title, 'description': event.description, 'date': event.date.strftime('%Y-%m-%d')}
+
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -54,13 +66,17 @@ def register():
 @app.route('/login', methods=['POST'])
 def login():
     auth = request.authorization
+
     if not auth or not auth.username or not auth.password:
-        return make_response('Could not verify', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
-    user = User.query.filter_by(username=auth.username).first()
+        return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
+
+    user = get_user_from_request(auth)
+
     if user and bcrypt.check_password_hash(user.password, auth.password):
-        token = jwt.encode({'user_id': user.id, 'exp': datetime.utcnow() + timedelta(hours=12)}, app.config['SECRET_KEY'])
+        token = generate_auth_token(user.id)
         return jsonify({'token': token})
-    return make_response('Could not verify', 401, {'WWW-Authenticate' : 'Basic realm="Login required!"'})
+    
+    return make_response('Could not verify', 401, {'WWW-Authenticate': 'Basic realm="Login required!"'})
 
 @app.route('/events', methods=['POST'])
 @token_required
@@ -75,10 +91,7 @@ def create_event(current_user):
 @token_required
 def get_all_events(current_user):
     events = Event.query.filter_by(organizer_id=current_user.id).all()
-    output = []
-    for event in events:
-        event_data = {'id': event.id, 'title': event.title, 'description': event.description, 'date': event.date.strftime('%Y-%m-%d')}
-        output.append(event_data)
+    output = [get_event_data(event) for event in events]
     return jsonify({'events': output})
 
 @app.route('/events/<int:event_id>', methods=['GET'])
@@ -87,7 +100,7 @@ def get_one_event(current_user, event_id):
     event = Event.query.filter_by(id=event_id, organizer_id=current_user.id).first()
     if not event:
         abort(404)
-    event_data = {'id': event.id, 'title': event.title, 'description': event.description, 'date': event.date.strftime('%Y-%m-%d')}
+    event_data = get_event_data(event)
     return jsonify(event_data)
 
 @app.route('/events/<int:event_id>', methods=['PUT'])
@@ -98,7 +111,7 @@ def update_event(current_user, event_id):
         abort(404)
     data = request.get_json()
     event.title = data['title']
-    event.description = data.get('description', "")
+    event.description = data.get('description', event.description)
     event.date = datetime.strptime(data['date'], '%Y-%m-%d')
     db.session.commit()
     return jsonify({'message': 'Event updated successfully'})
